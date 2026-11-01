@@ -1,0 +1,70 @@
+name: MLflow pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Lint with flake8
+        run: flake8 wine_lab tests --max-line-length 100
+
+      - name: Unit tests
+        run: pytest -v
+
+      - name: Run the full pipeline (short search)
+        run: python -m wine_lab.pipeline --max-evals 5
+
+      - name: Run again to exercise the promotion gate against an existing champion
+        run: python -m wine_lab.pipeline --max-evals 5
+
+      - name: Check registry state and predictions
+        run: |
+          python - << 'PY'
+          import mlflow, pandas as pd
+          from mlflow.tracking import MlflowClient
+          from wine_lab import config
+          mlflow.set_tracking_uri(config.TRACKING_URI)
+          client = MlflowClient()
+          champion = client.get_model_version_by_alias(config.MODEL_NAME, "champion")
+          challenger = client.get_model_version_by_alias(config.MODEL_NAME, "challenger")
+          print("champion version", champion.version, champion.tags)
+          print("challenger version", challenger.version, challenger.tags["promotion_decision"])
+          assert challenger.version == "2"
+          predictions = pd.read_csv(config.PREDICTIONS_PATH)
+          assert len(predictions) > 0
+          assert predictions["high_quality_probability"].between(0, 1).all()
+          PY
+
+      - name: Serve the champion and query it
+        run: |
+          python -m wine_lab.serve --port 5001 > serve.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -s http://127.0.0.1:5001/ping > /dev/null && break
+            sleep 2
+          done
+          python -m wine_lab.serve_client --rows 5
+
+      - name: Show server log on failure
+        if: failure()
+        run: cat serve.log || true
