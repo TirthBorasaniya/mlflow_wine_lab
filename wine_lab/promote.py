@@ -95,7 +95,7 @@ def run_promotion(pipeline_id=None) -> dict:
         "test_auc": f"{challenger_auc:.4f}",
         "promotion_decision": "promoted" if o_promote else "rejected",
         "promotion_reason": reason,
-        "compared_to_version": champion_version.version if champion_version else "none",
+        "compared_to_version": str(champion_version.version) if champion_version else "none",
     }
     for key, value in tag_dict.items():
         client.set_model_version_tag(config.MODEL_NAME, new_version.version, key, value)
@@ -107,7 +107,7 @@ def run_promotion(pipeline_id=None) -> dict:
         mlflow.log_metric("challenger_test_auc", challenger_auc)
         if champion_auc is not None:
             mlflow.log_metric("champion_test_auc", champion_auc)
-        mlflow.set_tags({"step": "promotion", "model_version": new_version.version,
+        mlflow.set_tags({"step": "promotion", "model_version": str(new_version.version),
                          "decision": tag_dict["promotion_decision"], "reason": reason})
 
     result_dict = {

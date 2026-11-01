@@ -50,7 +50,7 @@ jobs:
           challenger = client.get_model_version_by_alias(config.MODEL_NAME, "challenger")
           print("champion version", champion.version, champion.tags)
           print("challenger version", challenger.version, challenger.tags["promotion_decision"])
-          assert challenger.version == "2"
+          assert str(challenger.version) == "2"
           predictions = pd.read_csv(config.PREDICTIONS_PATH)
           assert len(predictions) > 0
           assert predictions["high_quality_probability"].between(0, 1).all()
