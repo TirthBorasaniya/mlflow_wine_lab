@@ -38,7 +38,7 @@ The lab's core concept is experiment tracking and the model registry. The change
 - **Every candidate is tagged** with its model family and the ID of the execution that produced it.
 
 ### 2. Fair, leak-free model comparison (`wine_lab/data.py`, `wine_lab/evaluation.py`)
-- **Duplicates removed before splitting.** The dataset contains over a thousand exact duplicate rows; the original split them randomly, so the same wine could appear in both training and test data, inflating every score. The data run logs how many were removed.
+- **Duplicates removed before splitting.** The dataset contains 1,177 exact duplicate rows out of 6,497; the original split them randomly, so the same wine could appear in both training and test data, inflating every score. The data run logs how many were removed.
 - **Stratified splits**, so the roughly 20 percent of high-quality wines is spread evenly across the train, validation, and test sets.
 - **One yardstick for every candidate:** all models are scored on the same validation set. The test set is touched only once, when deciding whether to promote.
 - **Richer logging per candidate:** AUC, average precision, log loss, accuracy, precision, recall, and F1, plus a ROC curve, a confusion matrix, and a feature importance chart as artifacts.
@@ -83,9 +83,9 @@ Everything runs on your own computer; no cloud account is needed.
 
 | Software | Version | How to get it |
 | --- | --- | --- |
-| Python | 3.11 (3.10 to 3.12 should also work) | https://www.python.org/downloads/ ; on Windows, tick "Add Python to PATH" during installation |
+| Python | **3.11** (tested; 3.10 to 3.12 should also work). **3.13 is not supported**: some pinned packages do not install on it | https://www.python.org/downloads/ ; on Windows, tick "Add Python to PATH" during installation. Or use conda, see Setup |
 | Git | Any recent version | https://git-scm.com/downloads |
-| Python packages | Pinned in `requirements.txt` (MLflow 2.17.2, XGBoost 2.1.1, Hyperopt 0.2.7, scikit-learn 1.5.2) | Installed in the setup step below |
+| Python packages | Pinned in `requirements.txt`: MLflow 2.17.2, XGBoost 2.1.1, Hyperopt 0.2.7, scikit-learn 1.5.2, pandas 2.2.3, NumPy 1.26.4. Also `setuptools<81` (Hyperopt and MLflow 2.17 import `pkg_resources`, which newer setuptools removed) and `SQLAlchemy==2.0.36` (MLflow 2.17's database layer fails with newer SQLAlchemy) | Installed in the setup step below |
 
 Check the installs in a terminal (Terminal on macOS, PowerShell on Windows):
 
@@ -98,16 +98,34 @@ About 1 GB of free disk space is enough for the packages and MLflow's files.
 
 ## Setup
 
+Download the code:
+
 ```bash
 git clone https://github.com/TirthBorasaniya/mlflow_wine_lab.git
 cd mlflow_wine_lab
+```
 
-python3 -m venv mlflow_lab_env              # Windows: python -m venv mlflow_lab_env
+Then create an environment with **one** of these options.
+
+**Option A: Python 3.11 installed directly**
+
+```bash
+python3.11 -m venv mlflow_lab_env           # Windows: py -3.11 -m venv mlflow_lab_env
 source mlflow_lab_env/bin/activate          # Windows: mlflow_lab_env\Scripts\activate
 pip install -r requirements-dev.txt
 ```
 
-The terminal prompt now starts with `(mlflow_lab_env)`. The data files are already in `data/`. On Windows, use `python` wherever this README says `python3`; inside the activated environment, `python` works everywhere.
+**Option B: conda** (use this if your default Python is 3.13 or you already have Anaconda or Miniconda)
+
+```bash
+conda create -n mlflow-lab python=3.11 -y
+conda activate mlflow-lab
+pip install -r requirements-dev.txt
+```
+
+The terminal prompt now starts with `(mlflow_lab_env)` or `(mlflow-lab)`. The data files are already in `data/`.
+
+**Every new terminal** you open for this lab needs the environment activated and the repository folder selected before running commands, for example `conda activate mlflow-lab` followed by `cd mlflow_wine_lab`.
 
 ## Running the lab
 
@@ -161,15 +179,15 @@ To start over, stop the UI and server, then delete `mlflow.db`, `mlartifacts/`, 
 **The pipeline** prints one line per step, ending with:
 
 ```
-data: 6497 rows, <number> duplicates removed, <number> used
+data: 6497 rows, 1177 duplicates removed, 5320 used
 baseline random forest: validation AUC 0.8...
 xgboost search (30 trials): best validation AUC 0.8...
 version 1 (xgboost): test AUC 0.8...; promoted (no current champion)
-scored <number> wines with version 1; wrote .../outputs/predictions.csv
+scored 1064 wines with version 1; wrote .../outputs/predictions.csv
 pipeline complete; open the UI with: mlflow ui --backend-store-uri sqlite:///mlflow.db
 ```
 
-Exact AUC values depend on library versions; values between roughly 0.80 and 0.92 are normal. On the **second** run, the version line ends with either `promoted (test AUC improved by ...)` or `rejected (test AUC changed by ..., below the required 0.002)`, and the batch line names whichever version is champion.
+Exact AUC values depend on library versions and the search; values between roughly 0.80 and 0.92 are normal, and the best model may be the random forest or an XGBoost trial. On the **second** run, the version line ends with either `promoted (test AUC improved by ...)` or `rejected (test AUC changed by ..., below the required 0.002)`, and the batch line names whichever version is champion.
 
 **The MLflow UI** shows, in the `wine-quality` experiment:
 - A `data_preparation` run with the duplicate count and the three datasets under **Datasets used**
@@ -185,14 +203,15 @@ wine 1: P(high quality) = 0.032
 wine 2: P(high quality) = 0.611
 ```
 
-**The tests** end with `passed` and no failures, and flake8 prints nothing.
+**The tests** end with `23 passed`, and flake8 prints nothing.
 
 ## Troubleshooting
 
 | Problem | Cause and fix |
 | --- | --- |
-| `No module named wine_lab` | Run commands from the repository folder, not from inside `wine_lab/`. |
-| `No module named mlflow` | The environment is not active. Run the activate command from Setup again. |
+| `No module named mlflow`, or `No module named wine_lab` with a path like `.../anaconda3/bin/python` | The environment is not active in this terminal, or you are not in the repository folder. Run the activate command from Setup and `cd` into the repository folder. |
+| Installation fails with errors about NumPy or wheels | Your Python is probably 3.13. Create the environment with Python 3.11 (Setup, option A or B). |
+| `No module named 'pkg_resources'` or `cannot import name 'FallbackAsyncAdaptedQueuePool'` | An older copy of `requirements.txt` without the setuptools and SQLAlchemy pins. Run `pip install "setuptools<81" "SQLAlchemy==2.0.36"`, delete `mlflow.db`, and rerun. |
 | `no champion model; run python -m wine_lab.promote first` | Run the full pipeline once before batch scoring or serving. |
 | The UI shows no runs | Start it from the repository folder with `--backend-store-uri sqlite:///mlflow.db`; the database lives there. |
 | `could not reach the model server` | Start `python -m wine_lab.serve` first and wait until it reports it is listening. |
