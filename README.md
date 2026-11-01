@@ -226,15 +226,13 @@ Screenshots from a local run:
 2. Comparison of the search trials: `docs/screenshots/02_trial_comparison.png`
 3. A candidate run's metrics and plots: `docs/screenshots/03_candidate_run.png`
 4. Model registry with aliases and tags: `docs/screenshots/04_registry.png`
-5. Pipeline output from the second run, showing the gate decision: `docs/screenshots/05_second_run.png`
-6. Serve client output: `docs/screenshots/06_serving.png`
+5. Second pipeline run showing the gate decision, followed by the serve client output: `docs/screenshots/05_second_run_and_serving.png`
 
 ![Experiment runs](docs/screenshots/01_runs.png)
 ![Trial comparison](docs/screenshots/02_trial_comparison.png)
 ![Candidate run](docs/screenshots/03_candidate_run.png)
 ![Model registry](docs/screenshots/04_registry.png)
-![Second run](docs/screenshots/05_second_run.png)
-![Serving](docs/screenshots/06_serving.png)
+![Second run and serving](docs/screenshots/05_second_run_and_serving.png)
 
 ## Project structure
 
