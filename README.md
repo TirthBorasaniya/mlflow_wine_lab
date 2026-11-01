@@ -4,6 +4,20 @@ Author: Tirth Borasaniya, IE-7374 MLOps
 
 Based on `Labs/Experiment_Tracking_Labs/Mlflow_Labs/Lab2` from the IE-7374 MLOps course repository. The original lab is a notebook, adapted from a Databricks tutorial, that trains a random forest and an XGBoost hyperparameter search on the Wine Quality dataset, tracks them with MLflow, registers the best model, and serves it. This version rebuilds that workflow so it runs on a laptop, fixes the bugs that stop it from working with current MLflow, and extends the tracking and registry parts.
 
+Original lab: https://github.com/raminmohammadi/MLOps/tree/main/Labs/Experiment_Tracking_Labs/Mlflow_Labs/Lab2
+
+## Summary: original vs this version
+
+| Area | Original lab | This version |
+| --- | --- | --- |
+| Format | One notebook; Spark steps fail on a laptop | Modules with one command per step; runs locally |
+| Tracking | Default experiment, one metric per run | Named experiment, logged datasets, 7 metrics and 3 plots per candidate, data preparation run |
+| Model comparison | Baseline scored on test, XGBoost on validation; duplicates leak across splits | Same validation set for every candidate, duplicates removed, test set used once |
+| Hyperparameter search | SparkTrials (needs Spark and Java), models logged twice | Local Hyperopt, nested runs, each model logged once |
+| Registry | Deprecated stages; always promotes the newest model | Aliases (champion, challenger) and a promotion gate with recorded decisions |
+| Inference | Spark batch step that never runs | Pandas batch scoring logged as a run, plus REST serving by alias |
+| Automation | None | CI runs tests, the pipeline twice, a registry check, and serving |
+
 **Contents:** [Changes to the core concept](#changes-to-the-core-concept) · [Bugs fixed](#bugs-fixed-from-the-original-lab) · [Prerequisites](#prerequisites) · [Setup](#setup) · [Running the lab](#running-the-lab) · [What a successful run looks like](#what-a-successful-run-looks-like) · [Troubleshooting](#troubleshooting) · [Results](#results) · [Project structure](#project-structure)
 
 ## How it works
